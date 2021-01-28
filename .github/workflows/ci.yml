@@ -1,0 +1,166 @@
+
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  frontend_tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:9.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+        - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v2.3.4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1.64.1
+      with:
+        ruby-version: 2.4.4
+    - name: Set up Node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '12'
+
+    - uses: actions/cache@v2.1.3
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-
+
+    - name: Install libpq-dev
+      run: sudo apt-get install libpq-dev
+
+    - name: Install dependencies
+      run: |
+        gem install bundler -v 1.17.3
+        bundle install --deployment --path vendor/bundle
+
+    - name: Get yarn cache directory
+      id: yarn-cache-get-dir
+      run: echo "::set-output name=dir::$(yarn cache dir)"
+
+    - uses: actions/cache@v2
+      id: yarn-cache
+      name: Restore yarn cache
+      with:
+        path: ${{ steps.yarn-cache-get-dir.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+
+    - name: Install JavaScript dependencies
+      run: yarn install
+
+    - name: Install Karma CLI
+      run: npm install -g karma-cli@0.1.2
+
+    - name: Copy configuration
+      run: cp config/application.yml.example config/application.yml
+
+    - name: Set up database
+      env:
+        OFN_DB_USERNAME: postgres
+        OFN_DB_PASSWORD: postgres
+        RAILS_ENV: test
+      run: bundle exec rake db:create db:schema:load
+
+    - name: Run tests
+      env:
+        OFN_DB_USERNAME: postgres
+        OFN_DB_PASSWORD: postgres
+        RAILS_ENV: test
+      run: bundle exec rake karma:run
+
+  backend_tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:9.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+        - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ci_node_total: [6]
+        ci_node_index: [0, 1, 2, 3, 4, 5]
+
+    steps:
+    - uses: actions/checkout@v2.3.4
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1.64.1
+      with:
+        ruby-version: 2.4.4
+
+    - uses: actions/cache@v2.1.3
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-
+
+    - name: Install libpq-dev
+      run: sudo apt-get install libpq-dev
+
+    - name: Install dependencies
+      run: |
+        gem install bundler -v 1.17.3
+        bundle install --deployment --path vendor/bundle
+
+    - name: Get yarn cache directory
+      id: yarn-cache-get-dir
+      run: echo "::set-output name=dir::$(yarn cache dir)"s
+
+    - uses: actions/cache@v2
+      id: yarn-cache
+      name: Restore yarn cache
+      with:
+        path: ${{ steps.yarn-cache-get-dir.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+
+    - name: Install JavaScript dependencies
+      run: yarn install
+
+    - name: Copy configuration
+      run: cp config/application.yml.example config/application.yml
+
+    - name: Set up database
+      env:
+        OFN_DB_USERNAME: postgres
+        OFN_DB_PASSWORD: postgres
+        RAILS_ENV: test
+      run: bundle exec rake db:create db:schema:load
+
+    - name: Run tests
+      env:
+        OFN_DB_USERNAME: postgres
+        OFN_DB_PASSWORD: postgres
+        RAILS_ENV: test
+        CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
+        CI_NODE_INDEX: ${{ matrix.ci_node_index }}
+        KNAPSACK_TEST_DIR: spec
+        KNAPSACK_TEST_FILE_PATTERN: "{spec,engines/**/spec}/**{,/*/**}/*_spec.rb"
+      run: bundle exec rake 'knapsack:rspec[--tag ~performance --format progress -p]'
