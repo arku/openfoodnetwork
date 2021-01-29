@@ -105,6 +105,17 @@ RSpec.configure do |config|
   config.default_retry_count = 2
   # Only retry when Selenium raises Net::ReadTimeout
   config.exceptions_to_retry = [Net::ReadTimeout]
+  config.display_try_failure_messages = true
+
+  config.around :each, :js do |ex|
+    ex.run_with_retry retry: 3
+  end
+
+  config.default_sleep_interval = ENV.fetch('RSPEC_RETRY_SLEEP_INTERVAL', 0).to_i
+
+  config.retry_callback = proc do |ex|
+    Capybara.reset!
+  end
 
   # Force use of expect (over should)
   config.expect_with :rspec do |expectations|
