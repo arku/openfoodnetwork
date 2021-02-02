@@ -162,6 +162,7 @@ group :test, :development do
 end
 
 group :test do
+  gem 'capybara-screenshot', '~> 1.0', '>= 1.0.25'
   gem 'simplecov', require: false
   gem 'test-prof'
   gem 'webmock'

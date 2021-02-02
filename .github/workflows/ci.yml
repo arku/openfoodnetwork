@@ -165,3 +165,8 @@ jobs:
         KNAPSACK_TEST_FILE_PATTERN: "{spec,engines/**/spec}/**{,/*/**}/*_spec.rb"
         RSPEC_RETRY_SLEEP_INTERVAL: 3
       run: bundle exec rake 'knapsack:rspec[--tag ~performance --format progress -p]'
+    - name: Archive capyabara screenshots
+      uses: actions/upload-artifact@v2
+      with:
+        name: capyabara-screenshots
+        path: tmp/capybara

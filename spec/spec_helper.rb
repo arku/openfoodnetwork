@@ -20,6 +20,7 @@ ENV["RAILS_ENV"] ||= 'test'
 require_relative "../config/environment"
 require 'rspec/rails'
 require 'capybara'
+require 'capybara-screenshot/rspec'
 require 'database_cleaner'
 require 'rspec/retry'
 require 'coverage_helper'
@@ -68,6 +69,8 @@ Capybara.configure do |config|
   config.match = :prefer_exact
   config.ignore_hidden_elements = true
 end
+
+Capybara.asset_host = 'http://localhost:3000'
 
 require "paperclip/matchers"
 
