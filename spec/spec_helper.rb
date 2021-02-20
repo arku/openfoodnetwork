@@ -28,6 +28,8 @@ require 'paper_trail/frameworks/rspec'
 
 require 'webdrivers'
 
+Webdrivers::Chromedriver.required_version = '72.0.3626.69'
+
 require 'shoulda/matchers'
 Shoulda::Matchers.configure do |config|
   config.integrate do |with|
