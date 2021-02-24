@@ -103,8 +103,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ci_node_total: [6]
-        ci_node_index: [0, 1, 2, 3, 4, 5]
+        ci_node_total: [4]
+        ci_node_index: [0, 1, 2, 3]
 
     steps:
     - uses: actions/checkout@v2.3.4
